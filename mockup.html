@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UFO Tracker — Mockup</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    width: 1400px;
+    min-height: 900px;
+    background: #04040f;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    overflow: hidden;
+  }
+
+  /* ── Starfield background ── */
+  .stars { position: fixed; inset: 0; z-index: 0; }
+  .star {
+    position: absolute;
+    border-radius: 50%;
+    background: #fff;
+    animation: twinkle var(--d) ease-in-out infinite;
+  }
+  @keyframes twinkle {
+    0%,100% { opacity: var(--o); }
+    50%      { opacity: calc(var(--o) * 0.2); }
+  }
+
+  /* ── Glow blobs ── */
+  .blob {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(120px);
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  /* ── Layout ── */
+  .page {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 52px 60px 48px;
+    gap: 0;
+  }
+
+  /* ── Top tagline ── */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(167,139,250,.12);
+    border: 1px solid rgba(167,139,250,.3);
+    border-radius: 999px;
+    padding: 5px 14px;
+    font-size: 12px;
+    color: #c4b5fd;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    margin-bottom: 18px;
+  }
+  .badge span { font-size: 14px; }
+
+  .headline {
+    font-size: 52px;
+    font-weight: 800;
+    letter-spacing: -1.5px;
+    color: #fff;
+    text-align: center;
+    line-height: 1.1;
+    margin-bottom: 10px;
+  }
+  .headline em {
+    font-style: normal;
+    background: linear-gradient(90deg, #a78bfa, #38bdf8);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .sub {
+    font-size: 17px;
+    color: #6b7280;
+    text-align: center;
+    margin-bottom: 36px;
+    max-width: 560px;
+    line-height: 1.5;
+  }
+  .sub strong { color: #9ca3af; }
+
+  /* ── Browser frame ── */
+  .browser {
+    width: 100%;
+    max-width: 1160px;
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,.08);
+    box-shadow:
+      0 0 0 1px rgba(167,139,250,.15),
+      0 40px 120px rgba(0,0,0,.8),
+      0 0 80px rgba(99,57,184,.25);
+  }
+
+  .browser-bar {
+    background: #13132a;
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-bottom: 1px solid rgba(255,255,255,.06);
+  }
+  .dots { display: flex; gap: 6px; }
+  .dot {
+    width: 12px; height: 12px;
+    border-radius: 50%;
+  }
+  .dot.r { background: #ff5f57; }
+  .dot.y { background: #febc2e; }
+  .dot.g { background: #28c840; }
+
+  .url-bar {
+    flex: 1;
+    background: rgba(255,255,255,.05);
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 6px;
+    padding: 4px 12px;
+    font-size: 12px;
+    color: #6b7280;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .url-bar .lock { color: #34d399; font-size: 11px; }
+  .url-bar .domain { color: #d1d5db; }
+
+  /* ── App UI inside browser ── */
+  .app {
+    background: #080810;
+    position: relative;
+    height: 560px;
+    overflow: hidden;
+  }
+
+  /* Map background — carto dark tiles approximation */
+  .map-bg {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse at 40% 50%, rgba(30,20,60,.5) 0%, transparent 65%),
+      #0a0a18;
+  }
+
+  /* SVG world map outline */
+  .map-svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: .18;
+  }
+
+  /* Sighting dots */
+  .dot-field {
+    position: absolute;
+    inset: 0;
+  }
+  .sdot {
+    position: absolute;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    cursor: pointer;
+  }
+
+  /* Pulse on "active" dot */
+  .sdot.pulse::after {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: 50%;
+    border: 2px solid currentColor;
+    animation: pulse 2s ease-out infinite;
+    opacity: 0;
+  }
+  @keyframes pulse {
+    0%   { transform: scale(1);   opacity: .7; }
+    100% { transform: scale(3);   opacity: 0;  }
+  }
+
+  /* ── Filter panel ── */
+  .filter-panel {
+    position: absolute;
+    top: 16px; left: 16px;
+    width: 218px;
+    background: rgba(13,13,26,.97);
+    border: 1px solid #2a2a4a;
+    border-radius: 18px;
+    padding: 16px;
+    backdrop-filter: blur(12px);
+  }
+  .fp-header { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+  .fp-title { color: #fff; font-weight: 700; font-size: 15px; }
+  .fp-count { color: #a78bfa; font-size: 11px; font-family: monospace; margin-bottom: 12px; }
+
+  .fp-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    color: #4b5563;
+    margin-bottom: 5px;
+  }
+  .fp-select {
+    width: 100%;
+    background: #13132a;
+    border: 1px solid #2a2a4a;
+    border-radius: 8px;
+    padding: 6px 10px;
+    color: #fff;
+    font-size: 12px;
+    margin-bottom: 10px;
+    appearance: none;
+  }
+  .fp-range-wrap { margin-bottom: 4px; }
+  .fp-range-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .fp-range-label span:first-child {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    color: #4b5563;
+  }
+  .fp-range-label span:last-child {
+    font-size: 11px;
+    color: #a78bfa;
+    font-family: monospace;
+  }
+  .fp-track {
+    position: relative;
+    height: 4px;
+    background: #2a2a4a;
+    border-radius: 4px;
+    margin-bottom: 4px;
+  }
+  .fp-fill {
+    position: absolute;
+    top: 0; bottom: 0;
+    left: 8%;
+    right: 10%;
+    background: #7c3aed;
+    border-radius: 4px;
+  }
+  .fp-thumb {
+    position: absolute;
+    top: 50%;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: #a78bfa;
+    border: 2px solid #0d0d1a;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 0 3px rgba(167,139,250,.25);
+  }
+  .fp-range-ends {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: #374151;
+  }
+
+  /* ── Recent feed ── */
+  .recent-feed {
+    position: absolute;
+    top: 16px; right: 16px;
+    width: 248px;
+    background: rgba(13,13,26,.97);
+    border: 1px solid #2a2a4a;
+    border-radius: 18px;
+    backdrop-filter: blur(12px);
+    overflow: hidden;
+    max-height: 480px;
+  }
+  .rf-header {
+    padding: 14px 16px 10px;
+    border-bottom: 1px solid #2a2a4a;
+  }
+  .rf-eyebrow {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    color: #4b5563;
+    margin-bottom: 2px;
+  }
+  .rf-title { color: #fff; font-weight: 600; font-size: 14px; }
+  .rf-item {
+    padding: 10px 16px;
+    border-bottom: 1px solid rgba(42,42,74,.5);
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+  }
+  .rf-icon { font-size: 13px; margin-top: 1px; flex-shrink: 0; }
+  .rf-body {}
+  .rf-name { color: #fff; font-size: 11.5px; font-weight: 500; }
+  .rf-date { color: #4b5563; font-size: 10px; margin-top: 1px; }
+  .rf-desc { color: #6b7280; font-size: 10.5px; margin-top: 3px; line-height: 1.4; }
+
+  /* ── Legend ── */
+  .legend {
+    position: absolute;
+    bottom: 16px; left: 16px;
+    background: rgba(13,13,26,.9);
+    border: 1px solid #2a2a4a;
+    border-radius: 12px;
+    padding: 10px 12px;
+  }
+  .legend-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    color: #4b5563;
+    margin-bottom: 6px;
+  }
+  .legend-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px 12px;
+  }
+  .legend-item { display: flex; align-items: center; gap: 5px; }
+  .legend-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .legend-text { color: #9ca3af; font-size: 10px; }
+
+  /* ── Support button ── */
+  .support-btn {
+    position: absolute;
+    bottom: 16px; right: 16px;
+    background: rgba(13,13,26,.9);
+    border: 1px solid rgba(167,139,250,.4);
+    border-radius: 999px;
+    padding: 6px 14px;
+    color: #c4b5fd;
+    font-size: 11px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  /* ── Bottom stats strip ── */
+  .stats {
+    display: flex;
+    justify-content: center;
+    gap: 48px;
+    margin-top: 32px;
+  }
+  .stat { text-align: center; }
+  .stat-num {
+    font-size: 28px;
+    font-weight: 800;
+    background: linear-gradient(135deg, #a78bfa, #38bdf8);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: -1px;
+  }
+  .stat-label { font-size: 12px; color: #4b5563; margin-top: 2px; text-transform: uppercase; letter-spacing: .08em; }
+
+  /* ── Domain pill ── */
+  .domain-pill {
+    margin-top: 22px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255,255,255,.04);
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 999px;
+    padding: 7px 18px;
+    font-size: 13px;
+    color: #6b7280;
+  }
+  .domain-pill .url { color: #d1d5db; font-weight: 500; }
+  .domain-pill .live {
+    background: rgba(52,211,153,.15);
+    color: #34d399;
+    border: 1px solid rgba(52,211,153,.3);
+    border-radius: 999px;
+    padding: 2px 8px;
+    font-size: 10px;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+</style>
+</head>
+<body>
+
+<!-- Stars -->
+<div class="stars" id="stars"></div>
+
+<!-- Glow blobs -->
+<div class="blob" style="width:600px;height:600px;top:-200px;left:-100px;background:rgba(99,57,184,.18)"></div>
+<div class="blob" style="width:500px;height:500px;top:200px;right:-150px;background:rgba(14,165,233,.12)"></div>
+
+<div class="page">
+
+  <!-- Logo lockup -->
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;">
+    <svg width="52" height="52" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg" style="border-radius:50%;box-shadow:0 0 24px rgba(167,139,250,0.35);">
+      <defs>
+        <radialGradient id="ml-bg" cx="50%" cy="44%" r="60%"><stop offset="0%" stop-color="#0d0d1a"/><stop offset="55%" stop-color="#080810"/><stop offset="100%" stop-color="#050508"/></radialGradient>
+        <linearGradient id="ml-bg2" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#a78bfa" stop-opacity="0.5"/><stop offset="50%" stop-color="#a78bfa" stop-opacity="0.12"/><stop offset="100%" stop-color="#7c3aed" stop-opacity="0.4"/></linearGradient>
+        <linearGradient id="ml-disc" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#1a1a2e"/><stop offset="55%" stop-color="#0d0d1a"/><stop offset="100%" stop-color="#080810"/></linearGradient>
+        <linearGradient id="ml-sheen" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#a78bfa" stop-opacity="0.12"/><stop offset="100%" stop-color="#a78bfa" stop-opacity="0"/></linearGradient>
+        <radialGradient id="ml-dome" cx="38%" cy="30%" r="65%"><stop offset="0%" stop-color="#13132a"/><stop offset="60%" stop-color="#0d0d1a"/><stop offset="100%" stop-color="#080810"/></radialGradient>
+        <radialGradient id="ml-win" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#a78bfa" stop-opacity="0.9"/><stop offset="100%" stop-color="#a78bfa" stop-opacity="0"/></radialGradient>
+        <linearGradient id="ml-beam" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#a78bfa" stop-opacity="0.6"/><stop offset="100%" stop-color="#a78bfa" stop-opacity="0"/></linearGradient>
+        <radialGradient id="ml-halo" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#a78bfa" stop-opacity="0.16"/><stop offset="100%" stop-color="#a78bfa" stop-opacity="0"/></radialGradient>
+        <filter id="ml-g"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <filter id="ml-a"><feGaussianBlur stdDeviation="18"/></filter>
+        <filter id="ml-m"><feGaussianBlur stdDeviation="8"/></filter>
+        <filter id="ml-bb"><feGaussianBlur stdDeviation="6"/></filter>
+        <clipPath id="ml-clip"><circle cx="200" cy="200" r="193"/></clipPath>
+      </defs>
+      <circle cx="200" cy="200" r="198" fill="url(#ml-bg)"/>
+      <circle cx="200" cy="200" r="196" fill="none" stroke="url(#ml-bg2)" stroke-width="1.5"/>
+      <g clip-path="url(#ml-clip)" opacity="0.75">
+        <circle cx="48" cy="58" r="1" fill="#fff" opacity=".45"/><circle cx="348" cy="44" r="1.4" fill="#fff" opacity=".65"/><circle cx="82" cy="170" r=".9" fill="#fff" opacity=".4"/><circle cx="325" cy="290" r="1.1" fill="#fff" opacity=".38"/><circle cx="190" cy="38" r=".9" fill="#fff" opacity=".6"/><circle cx="308" cy="96" r="1.7" fill="#fff" opacity=".82"/><circle cx="114" cy="282" r="1.3" fill="#ddd6fe" opacity=".65"/>
+      </g>
+      <ellipse cx="200" cy="215" rx="145" ry="55" fill="url(#ml-halo)" filter="url(#ml-a)"/>
+      <path d="M158,238 L242,238 L298,368 L102,368 Z" fill="url(#ml-beam)" filter="url(#ml-bb)" opacity=".5"/>
+      <path d="M172,238 L228,238 L262,340 L138,340 Z" fill="url(#ml-beam)" opacity=".5"/>
+      <ellipse cx="200" cy="244" rx="124" ry="13" fill="#050508" opacity=".98"/>
+      <ellipse cx="200" cy="230" rx="128" ry="21" fill="url(#ml-disc)"/>
+      <ellipse cx="200" cy="225" rx="128" ry="13" fill="url(#ml-sheen)"/>
+      <ellipse cx="200" cy="220" rx="128" ry="10" fill="none" stroke="#a78bfa" stroke-width="1.8" opacity=".55"/>
+      <ellipse cx="200" cy="230" rx="128" ry="21" fill="#a78bfa" opacity=".06" filter="url(#ml-m)"/>
+      <circle cx="200" cy="226" r="3.8" fill="#a78bfa" opacity="1" filter="url(#ml-g)"/>
+      <circle cx="172" cy="227" r="3.2" fill="#a78bfa" opacity=".9" filter="url(#ml-g)"/>
+      <circle cx="228" cy="227" r="3.2" fill="#a78bfa" opacity=".9" filter="url(#ml-g)"/>
+      <circle cx="148" cy="231" r="2.6" fill="#7c3aed" opacity=".75"/>
+      <circle cx="252" cy="231" r="2.6" fill="#7c3aed" opacity=".75"/>
+      <circle cx="186" cy="226" r="2.6" fill="#ffe066" opacity=".8" filter="url(#ml-g)"/>
+      <circle cx="214" cy="226" r="2.6" fill="#ffe066" opacity=".8" filter="url(#ml-g)"/>
+      <path d="M96,228 Q96,144 200,136 Q304,144 304,228 Z" fill="url(#ml-dome)"/>
+      <path d="M96,228 Q96,144 200,136 Q304,144 304,228 Z" fill="none" stroke="#a78bfa" stroke-width="1.4" opacity=".28"/>
+      <ellipse cx="200" cy="188" rx="28" ry="20" fill="#080810"/>
+      <ellipse cx="200" cy="188" rx="28" ry="20" fill="url(#ml-win)" opacity=".32"/>
+      <ellipse cx="200" cy="188" rx="28" ry="20" fill="none" stroke="#a78bfa" stroke-width="1.5" opacity=".65"/>
+      <ellipse cx="200" cy="188" rx="12" ry="8" fill="#a78bfa" opacity=".2" filter="url(#ml-m)"/>
+      <ellipse cx="200" cy="250" rx="96" ry="9" fill="#a78bfa" opacity=".16" filter="url(#ml-m)"/>
+    </svg>
+    <div>
+      <div style="color:#a78bfa;font-size:20px;font-weight:800;letter-spacing:-0.02em;line-height:1;">UFO</div>
+      <div style="color:#4b5563;font-size:11px;font-weight:500;letter-spacing:0.22em;margin-top:1px;">TRACKER</div>
+    </div>
+  </div>
+
+  <div class="badge"><span>🛸</span> Now Live</div>
+
+  <h1 class="headline">Track Every <em>UFO Sighting</em><br>In Real Time</h1>
+  <p class="sub">
+    <strong>96,000+</strong> verified reports from NUFORC — mapped, filtered,
+    and updated nightly. From 1940 to today.
+  </p>
+
+  <!-- Browser mockup -->
+  <div class="browser">
+    <div class="browser-bar">
+      <div class="dots">
+        <div class="dot r"></div>
+        <div class="dot y"></div>
+        <div class="dot g"></div>
+      </div>
+      <div class="url-bar">
+        <span class="lock">🔒</span>
+        <span class="domain">ufot.tech</span>
+      </div>
+    </div>
+
+    <div class="app">
+      <!-- Map background -->
+      <div class="map-bg"></div>
+
+      <!-- Minimal world map SVG outline -->
+      <svg class="map-svg" viewBox="0 0 1160 560" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- North America -->
+        <path d="M95 80 Q130 60 175 70 Q210 65 235 85 Q260 90 270 110 Q280 135 265 150 Q250 165 240 185 Q225 210 210 230 Q195 250 180 260 Q165 270 155 260 Q145 250 140 235 Q130 220 120 210 Q105 200 95 185 Q80 165 75 145 Q70 120 80 100 Z" fill="#1a1a3a" stroke="#3a3a5a" stroke-width="1"/>
+        <!-- US roughly -->
+        <path d="M120 155 Q160 145 210 150 Q255 148 275 165 Q285 180 280 200 Q270 218 255 225 Q235 230 210 228 Q185 225 165 220 Q140 215 125 205 Q108 195 108 178 Z" fill="#2a2a4a" stroke="#4a4a6a" stroke-width="1"/>
+        <!-- Mexico/Central Am -->
+        <path d="M160 228 Q185 228 200 240 Q210 255 205 268 Q198 278 188 272 Q175 265 165 255 Q155 243 155 233 Z" fill="#1a1a3a" stroke="#3a3a5a" stroke-width="1"/>
+        <!-- South America -->
+        <path d="M195 285 Q220 275 245 285 Q265 295 270 315 Q275 340 268 365 Q260 390 248 408 Q235 422 220 425 Q205 425 195 412 Q182 395 178 372 Q173 345 177 318 Q180 300 195 285 Z" fill="#1a1a3a" stroke="#3a3a5a" stroke-width="1"/>
+        <!-- Europe -->
+        <path d="M490 70 Q510 60 535 65 Q555 68 565 82 Q572 95 565 108 Q555 118 540 120 Q522 122 508 115 Q494 108 490 95 Q487 82 490 70 Z" fill="#2a2a4a" stroke="#4a4a6a" stroke-width="1"/>
+        <!-- Africa -->
+        <path d="M490 135 Q515 125 540 130 Q560 135 568 155 Q575 175 572 200 Q568 225 560 248 Q550 268 535 278 Q518 284 502 278 Q485 268 478 248 Q470 225 472 198 Q474 170 480 152 Z" fill="#1a1a3a" stroke="#3a3a5a" stroke-width="1"/>
+        <!-- Asia rough -->
+        <path d="M580 60 Q630 45 690 50 Q740 55 780 65 Q815 75 835 95 Q845 112 835 130 Q820 148 795 155 Q762 162 730 158 Q698 153 672 145 Q645 137 622 125 Q600 113 588 95 Q578 78 580 60 Z" fill="#1a1a3a" stroke="#3a3a5a" stroke-width="1"/>
+        <!-- Australia -->
+        <path d="M778 305 Q805 295 832 300 Q855 307 865 325 Q872 342 865 358 Q855 372 835 377 Q812 380 793 372 Q774 362 768 345 Q762 325 778 305 Z" fill="#1a1a3a" stroke="#3a3a5a" stroke-width="1"/>
+      </svg>
+
+      <!-- Sighting dots — US cluster heavy -->
+      <div class="dot-field" id="dots"></div>
+
+      <!-- Filter panel -->
+      <div class="filter-panel">
+        <div class="fp-header">
+          <span style="font-size:18px">🛸</span>
+          <span class="fp-title">UFO Tracker</span>
+        </div>
+        <div class="fp-count">6,000 sightings shown</div>
+
+        <div class="fp-label">Shape</div>
+        <select class="fp-select"><option>All shapes</option></select>
+
+        <div class="fp-label">Country</div>
+        <select class="fp-select"><option>All Countries</option></select>
+
+        <div class="fp-range-wrap">
+          <div class="fp-range-label">
+            <span>Year Range</span>
+            <span>1940 – 2026</span>
+          </div>
+          <div class="fp-track">
+            <div class="fp-fill"></div>
+            <div class="fp-thumb" style="left:8%"></div>
+            <div class="fp-thumb" style="left:90%"></div>
+          </div>
+          <div class="fp-range-ends"><span>1940</span><span>2026</span></div>
+        </div>
+      </div>
+
+      <!-- Recent feed -->
+      <div class="recent-feed">
+        <div class="rf-header">
+          <div class="rf-eyebrow">Latest Reports</div>
+          <div class="rf-title">Recent Sightings</div>
+        </div>
+        <div class="rf-item">
+          <div class="rf-icon">🔥</div>
+          <div class="rf-body">
+            <div class="rf-name">Fireball — Phoenix, AZ</div>
+            <div class="rf-date">04/22/2026 21:14</div>
+            <div class="rf-desc">Bright orange fireball moving silently south, no sound…</div>
+          </div>
+        </div>
+        <div class="rf-item">
+          <div class="rf-icon">△</div>
+          <div class="rf-body">
+            <div class="rf-name">Triangle — Chicago, IL</div>
+            <div class="rf-date">04/20/2026 22:47</div>
+            <div class="rf-desc">Three white lights in a perfect triangle, hovering for 4 min…</div>
+          </div>
+        </div>
+        <div class="rf-item">
+          <div class="rf-icon">💡</div>
+          <div class="rf-body">
+            <div class="rf-name">Light — Portland, OR</div>
+            <div class="rf-date">04/19/2026 03:12</div>
+            <div class="rf-desc">Single bright light, far too fast for any aircraft…</div>
+          </div>
+        </div>
+        <div class="rf-item">
+          <div class="rf-icon">●</div>
+          <div class="rf-body">
+            <div class="rf-name">Sphere — Austin, TX</div>
+            <div class="rf-date">04/18/2026 19:55</div>
+            <div class="rf-desc">Metallic sphere reflecting sunlight, no exhaust trail…</div>
+          </div>
+        </div>
+        <div class="rf-item">
+          <div class="rf-icon">◎</div>
+          <div class="rf-body">
+            <div class="rf-name">Disk — Seattle, WA</div>
+            <div class="rf-date">04/17/2026 20:30</div>
+            <div class="rf-desc">Classic disc shape, rotating lights on underside…</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Legend -->
+      <div class="legend">
+        <div class="legend-label">Shape</div>
+        <div class="legend-grid">
+          <div class="legend-item"><div class="legend-dot" style="background:#ffe066"></div><span class="legend-text">Light</span></div>
+          <div class="legend-item"><div class="legend-dot" style="background:#a78bfa"></div><span class="legend-text">Triangle</span></div>
+          <div class="legend-item"><div class="legend-dot" style="background:#fb923c"></div><span class="legend-text">Fireball</span></div>
+          <div class="legend-item"><div class="legend-dot" style="background:#38bdf8"></div><span class="legend-text">Sphere</span></div>
+          <div class="legend-item"><div class="legend-dot" style="background:#34d399"></div><span class="legend-text">Disk</span></div>
+          <div class="legend-item"><div class="legend-dot" style="background:#6b7280"></div><span class="legend-text">Other</span></div>
+        </div>
+      </div>
+
+      <!-- Support button -->
+      <div class="support-btn">♥ Support</div>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-num">96,763</div>
+      <div class="stat-label">Verified Sightings</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">1940–2026</div>
+      <div class="stat-label">Years Covered</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">Nightly</div>
+      <div class="stat-label">Auto-Updated</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">Free</div>
+      <div class="stat-label">No Ads, No Tracking</div>
+    </div>
+  </div>
+
+  <!-- Domain pill -->
+  <div class="domain-pill">
+    <span class="url">ufot.tech</span>
+    <span class="live">Live</span>
+  </div>
+</div>
+
+<script>
+  // Generate stars
+  const starsEl = document.getElementById('stars');
+  for (let i = 0; i < 180; i++) {
+    const s = document.createElement('div');
+    s.className = 'star';
+    const size = Math.random() * 2 + 0.5;
+    const opacity = Math.random() * 0.6 + 0.1;
+    const duration = Math.random() * 4 + 2;
+    s.style.cssText = `
+      width:${size}px;height:${size}px;
+      top:${Math.random()*100}%;left:${Math.random()*100}%;
+      --o:${opacity};--d:${duration}s;
+      animation-delay:${Math.random()*4}s;
+    `;
+    starsEl.appendChild(s);
+  }
+
+  // Generate sighting dots
+  const dotsEl = document.getElementById('dots');
+  const colors = ['#ffe066','#a78bfa','#fb923c','#38bdf8','#34d399','#f472b6','#6b7280'];
+
+  // US-heavy scatter with some world dots
+  const regions = [
+    // US West Coast
+    { x:[8,22], y:[20,60], w:30 },
+    // US Midwest
+    { x:[22,38], y:[18,50], w:25 },
+    // US East Coast
+    { x:[34,45], y:[18,52], w:28 },
+    // US South
+    { x:[24,40], y:[45,62], w:18 },
+    // Canada
+    { x:[10,40], y:[8,22], w:8 },
+    // UK/Europe
+    { x:[44,52], y:[12,28], w:12 },
+    // Australia
+    { x:[69,78], y:[54,68], w:6 },
+    // South America
+    { x:[22,32], y:[55,82], w:5 },
+  ];
+
+  let dotCount = 0;
+  regions.forEach(r => {
+    const n = r.w * 3;
+    for (let i = 0; i < n; i++) {
+      const d = document.createElement('div');
+      d.className = 'sdot';
+      const x = r.x[0] + Math.random() * (r.x[1]-r.x[0]);
+      const y = r.y[0] + Math.random() * (r.y[1]-r.y[0]);
+      const size = Math.random() < 0.15 ? 7 : Math.random() < 0.4 ? 5 : 4;
+      const color = colors[Math.floor(Math.random()*colors.length)];
+      const opacity = Math.random() * 0.4 + 0.55;
+      d.style.cssText = `
+        left:${x}%;top:${y}%;
+        width:${size}px;height:${size}px;
+        background:${color};
+        opacity:${opacity};
+        ${dotCount < 3 ? 'color:'+color+';' : ''}
+      `;
+      if (dotCount < 3) d.classList.add('pulse');
+      dotsEl.appendChild(d);
+      dotCount++;
+    }
+  });
+</script>
+</body>
+</html>
