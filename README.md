@@ -1,5 +1,7 @@
 # UFO Tracker 🛸
 
+![UFO Tracker](public/banner.png)
+
 **Live at [ufot.tech](https://ufot.tech)**
 
 An interactive map of 96,000+ UFO sightings from the [NUFORC database](https://nuforc.org), combined with 97 declassified U.S. government UAP documents from the [PURSUE program (war.gov/UFO)](https://www.war.gov/UFO/). Data is updated nightly.
